@@ -1,0 +1,429 @@
+#+TITLE: Configuración de 'emacs'
+#+AUTHOR José Antonio Navarro Ramón
+#+EMAIL janr-devel@gmail.com
+#+STARTUP: content
+## -> overview content showall show2levels ... show5levels showeverything
+
+OBJETIVO:
+Este archivo contiene la configuración que utilizo de emacs.
+La configuración inicial sirve para poner en marcha emacs con los paquetes
+necesarios.
+Cuando haya terminado esta, se podrá ejecutar emacs normalmente; por ejemplo:
+~$ emacs&~
+
+* Configuración inicial
+  1) Este código arranca 'emacs'.
+     Cuando finalice la configuración, salga con =C-x C-c=:
+     CONFDIR='/home/janr/.soft/emacs/emacsconf'
+     #+BEGIN_shell
+     if [ -t ~/.soft/emacs/emacsconf/init-first-time.org ]
+          rm -rf ~/.emacs.d
+	  mkdir ~/.emacs.d
+	  touch ~/.emacs.d/custom.el
+	  cp ~/.soft/emacs/emacsconf/init-first-time.org ~/.emacs.d/init.org
+	  #emacs -l init.el&
+	  emacs -e '(org-babel-load-file "~/.emacs.d/init.org")
+     endif
+     #+END_shell
+  2) Arranque de 'emacs' cargando la configuración definitiva.
+     Cuando finalice la configuración, salga con =C-x C-c=:
+     ;;#+BEGIN_shell
+     emacsclient -e '(org-babel-load-file "~/.emacs.d/init.org")
+     ;;#+END_shell
+     
+
+* Código activado por defecto
+** Código básico
+#+BEGIN_SRC emacs-lisp
+  ;;-----------------------------------------------------------------------
+  ;; Cógigo básico
+  (setq inhibit-startup-message t) ; Inhibe pantalla de presentación
+  (scroll-bar-mode -1)             ; Quita barra de desplazamiento
+  (tool-bar-mode -1)               ; Quita barra de herramientas
+  (menu-bar-mode -1)               ; Quita barra de menú
+  (set-fringe-mode 10)             ; Margen algo más ancho
+  (setq visible-bell t)            ; Desactiva sonido de error
+  ;; Las variables personalizadas se guardan en el fichero 'custom-el'
+  (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+  (load-file custom-file)
+  (hl-line-mode 1)                  ; Destaca ligeramente la línea actual
+  ;;(line-number-mode 1)              ; Númmero de línea en la línea de estado
+  (column-number-mode 1)            ; Número de columna en la línea de estado
+  (show-paren-mode 1)               ; Señala paréntesis que se corresponden
+  ;;(defalias 'yes-or-no-p 'y-or-n-p) ; Confirmación concisa yes-no
+  (global-set-key (kbd "<escape>") 'keyboard-escape-quit) ; ESC actúa como C-g
+  (global-set-key [remap list-buffers] 'ibuffer)
+#+END_SRC
+
+** Ventanas
+  #+BEGIN_SRC  emacs-lisp
+    (global-set-key (kbd "M-o") 'other-window)
+
+    (use-package windmove
+      :config
+      (windmove-default-keybindings))
+  #+END_SRC
+
+** Tipo de letra
+#+BEGIN_SRC emacs-lisp
+  ;; SET FONT
+  ;; OTHER OPTIONS INSTEAD THE ONE IN THE CODE AMONG OTHERS:
+  ;; (FEEL FREE TO MODIFY CODE IN CASE YOU KNOW WHAT YOU ARE DOING)
+  ;; 1) (add-to-list 'default-frame-alist '(font . "Inconsolata"))
+  ;; 2) (set-face-attribute 'default nil :height 100)
+  ;; 3) (set-face-attribute 'default nil
+  ;;                        :family "Source Code Pro"
+  ;;                        :height 100
+  ;;
+  (set-face-attribute 'default nil
+                      :family "Source Code Pro"
+                      :height 105
+                      :weight 'normal
+                      :width 'normal)
+#+END_SRC
+
+** Windows con utf-8
+#+BEGIN_SRC emacs-lisp
+  ;;-----------------------------------------------------------------------
+  ;; Windows con utf-8
+  (cond
+    ((string-equal system-type "windows-nt")
+      (progn
+	(prefer-coding-system 'utf-8))))
+	   ;(modify-coding-system-alist 'file "" 'utf-8-unix))))
+#+END_SRC
+
+** Tamaño pantalla
+#+BEGIN_SRC emacs-lisp
+  (setq debug-on-error t)
+  ;;-----------------------------------------------------------------------
+  ;; Tamaño y posición de la ventana gráfica
+  ;; Ordenador portátil
+  (when (display-graphic-p)
+    (setq fheight 47)
+    (setq fwidth 96)
+    (setq fleft -100) ; 1500 vs 0
+    (setq ftop -100)
+
+    (add-to-list 'default-frame-alist `(top  . ,ftop))
+    (add-to-list 'default-frame-alist `(left  . ,fleft))
+    (add-to-list 'default-frame-alist `(width  . ,fwidth))
+    (add-to-list 'default-frame-alist `(height . ,fheight)))
+#+END_SRC
+
+** Melpa y use-package
+#+BEGIN_SRC emacs-lisp
+  ;;-----------------------------------------------------------------------
+  ;; Melpa
+  (require 'package)
+  ;;(setq package-enable-at-startup nil)
+  ;;(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+  (setq package-archives '(("melpa" . "https://melpa.org/packages/")
+                           ("elpa" . "https://elpa.gnu.org/packages/")))
+
+  (package-initialize)
+  ;; Use-package
+  (unless (package-installed-p 'use-package)
+    (package-install 'use-package))
+
+  (require 'use-package)
+  (setq use-package-always-ensure t)
+#+END_SRC
+
+** Números de línea
+#+BEGIN_SRC emacs-lisp
+  (global-display-line-numbers-mode t) ; activación global de números de línea
+  ;; Deshabilita números de línea para algunos modos
+  (dolist (mode '(org-mode-hook
+		term-mode-hook
+		eshell-mode-hook))
+    (add-hook mode (lambda () (display-line-numbers-mode 0))))
+#+END_SRC
+
+** Aspell
+#+BEGIN_SRC emacs-lisp
+  ;;-----------------------------------------------------------------------
+  ;; Aspell
+  (setq-default ispell-program-name "aspell")
+  (setq ispell-dictionary "castellano")
+#+END_SRC
+
+** Org-mode
+#+BEGIN_SRC emacs-lisp
+  ;;-----------------------------------------------------------------------
+  ;; Org-mode
+  (setq require 'org)
+  (global-set-key (kbd "C-c l") 'org-store-link)
+  (global-set-key (kbd "C-c a") 'org-agenda)
+  (global-set-key (kbd "C-c c") 'org-capture)
+  (global-set-key (kbd "C-c b") 'org-iswitchb)
+  ;;(setq org-log-done t)
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '(
+     (shell . t)
+     ))
+#+END_SRC
+
+** AUCTeX
+#+BEGIN_SRC emacs-lisp
+  ;;-----------------------------------------------------------------------
+  ;; AUCTeX
+  (use-package tex
+  :defer t
+  :ensure auctex
+  :ensure auctex-lua
+  :config
+  (setq TeX-auto-save t)
+  (setq TeX-parse-self t)
+  (setq-default TeX-master nil)
+  (add-hook 'LaTeX-mode-hook 'visual-line-mode) ; podríamos preferir 'auto-fill-mode
+  (add-hook 'LaTeX-mode-hook 'flyspell-mode)
+  (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
+  (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
+  (setq reftex-plug-into-AUCTeX t))
+
+  (setq require 'auctex-lua)
+#+END_SRC
+
+** Tramp
+#+BEGIN_SRC emacs-lisp
+(use-package tramp
+  :ensure nil
+  :custom
+  (tramp-default-method "ssh"))
+#+END_SRC
+  
+** Magit
+#+BEGIN_SRC emacs-lisp
+  ;;-----------------------------------------------------------------------
+  ;; Magit
+  (use-package magit
+  :ensure t
+  :bind ("C-x g" . magit-status))
+#+END_SRC
+
+** Exportación org-mode -> markdown
+#+BEGIN_SRC emacs-lisp
+  ;;-----------------------------------------------------------------------
+  ;; ox-gfm (exporta texto org-mode a markdown)
+  (use-package ox-gfm
+  :ensure t
+  :config
+  (eval-after-load "org"
+  '(require 'ox-gfm nil t)))
+#+END_SRC
+
+** Ivy
+;;#+BEGIN_SRC emacs-lisp
+  ;;-----------------------------------------------------------------------
+  (use-package ivy
+    :diminish
+    :bind (;("C-s" . swiper)
+	   :map ivy-minibuffer-map
+	   ("TAB" . ivy-alt-done)
+	   ("C-l" . ivy-alt-done)
+	   ("C-j" . ivy-next-line)
+	   ("C-k" . ivy-previous-line)
+	   :map ivy-switch-buffer-map
+	   ("C-k" . ivy-previous-line)
+	   ("C-l" . ivy-done)
+	   ("C-d" . ivy-switch-buffer-kill)
+	   :map ivy-reverse-i-search-map
+	   ("C-k" . ivy-previous-line)
+	   ("C-d" . ivy-reverse-i-search-kill))
+    :init (ivy-mode 1)) ; cambiar :config -> :init para iniciar ivy automáticamente.
+;;#+END_SRC
+
+** Which key
+#+BEGIN_SRC emacs-lisp
+  (use-package which-key
+    :init (which-key-mode)
+    :diminish which-key-mode
+    :config (setq which-key-idle-delay 0.3))
+#+END_SRC
+
+** Vertico
+#+BEGIN_SRC emacs-lisp
+  (use-package vertico
+  :ensure t
+  :init (vertico-mode))
+#+END_SRC
+
+** Temas gráficos
+   Elegir entre los temas: modus-themes / ef-themes
+*** modus-themes
+;;#+BEGIN_SRC emacs-lisp
+  ;;-----------------------------------------------------------------------
+  ;; Tema gráfico: modus-themes
+  (use-package modus-themes
+    :ensure t
+    :config
+    ;; Always reload the theme for changes to take effect!
+    ;; Add all your customizations prior to loading the theme
+    (setq modus-themes-custom-autoreload nil
+	  modus-themes-to-toggle '(modus-vivendi modus-operandi-tinted)
+	  modus-themes-mixed-fonts t
+	  modus-themes-variable-pitch-ui nil
+	  modus-themes-italic-constructs t
+	  modus-themes-bold-constructs nil
+	  modus-themes-completions '((t . (extrabold)))
+	  modus-themes-prompts nil
+	  modus-themes-headings
+	  '((agenda-structure . (variable-pitch light 2.2))
+	    (agenda-date . (variable-pitch regular 1.3))
+	    (t . (regular 1.15))))
+
+    (setq modus-themes-common-palette-overrides
+	  '((cursor magenta-cooler)
+	    ;; Make the fringe invisible.
+	    (fringe unspecified)
+	    ;; Make line numbers less intense and add a shade of cyan
+	    ;; for the current line number.
+	    (fg-line-number-inactive "gray50")
+	    (fg-line-number-active cyan-cooler)
+	    (bg-line-number-inactive unspecified)
+	    (bg-line-number-active unspecified)
+	    ;; Make the current line of `hl-line-mode' a fine shade of
+	    ;; gray (though also see my `lin' package).
+	    (bg-hl-line bg-dim)
+	    ;; Make the region have a cyan-green background with no
+	    ;; specific foreground (use foreground of underlying text).
+	    ;; "bg-sage" refers to Salvia officinalis, else the common
+	    ;; sage.
+	    (bg-region bg-sage)
+	    (fg-region unspecified)
+	    ;; Make matching parentheses a shade of magenta.  It
+	    ;; complements the region nicely.
+	    (bg-paren-match bg-magenta-intense)
+	    ;; Make email citations faint and neutral, reducing the
+	    ;; default four colors to two; make mail headers cyan-blue.
+	    (mail-cite-0 fg-dim)
+	    (mail-cite-1 blue-faint)
+	    (mail-cite-2 fg-dim)
+	    (mail-cite-3 blue-faint)
+	    (mail-part cyan-warmer)
+	    (mail-recipient blue-warmer)
+	    (mail-subject magenta-cooler)
+	    (mail-other cyan-warmer)
+	    ;; Change dates to a set of more subtle combinations.
+	    (date-deadline magenta-cooler)
+	    (date-scheduled magenta)
+	    (date-weekday fg-main)
+	    (date-event fg-dim)
+	    (date-now blue-faint)
+	    ;; Make tags (Org) less colorful and tables look the same as
+	    ;; the default foreground.
+	    (prose-done cyan-cooler)
+	    (prose-tag fg-dim)
+	    (prose-table fg-main)
+	    ;; Make headings less colorful (though I never use deeply
+	    ;; nested headings).
+	    (fg-heading-2 blue-faint)
+	    (fg-heading-3 magenta-faint)
+	    (fg-heading-4 blue-faint)
+	    (fg-heading-5 magenta-faint)
+	    (fg-heading-6 blue-faint)
+	    (fg-heading-7 magenta-faint)
+	    (fg-heading-8 blue-faint)
+	    ;; Make the active mode line a fine shade of lavender
+	    ;; (purple) and tone down the gray of the inactive mode
+	    ;; lines.
+	    (bg-mode-line-active bg-lavender)
+	    (border-mode-line-active bg-lavender)
+
+	    (bg-mode-line-inactive bg-dim)
+	    (border-mode-line-inactive bg-inactive)
+	    ;; Make the prompts a shade of magenta, to fit in nicely with
+	    ;; the overall blue-cyan-purple style of the other overrides.
+	    ;; Add a nuanced background as well.
+	    (bg-prompt bg-magenta-nuanced)
+	    (fg-prompt magenta-cooler)
+	    ;; Tweak some more constructs for stylistic constistency.
+	    (name blue-warmer)
+	    (identifier magenta-faint)
+	    (keybind magenta-cooler)
+	    (accent-0 magenta-cooler)
+	    (accent-1 cyan-cooler)
+	    (accent-2 blue-warmer)
+	    (accent-3 red-cooler)))
+
+   ;; Make the active mode line have a pseudo 3D effect (this assumes
+   ;; you are using the default mode line and not an extra package).
+   (custom-set-faces
+    '(mode-line ((t :box (:style released-button)))))
+
+   (load-theme 'modus-vivendi :no-confirm)
+   (define-key global-map (kbd "<f5>") #'modus-themes-toggle))
+  ;;-----------------------------------------------------------------------
+;;#+END_SRC
+
+*** ef-themes
+#+BEGIN_SRC emacs-lisp
+  ;;-----------------------------------------------------------------------
+  ;; TEMA GRÁFICO: ef-themes
+  (use-package ef-themes
+    :ensure t
+    :config
+    ;; Always reload the theme for changes to take effect!
+    ;; Add all your customizations prior to loading the theme
+    ;; Make customisations that affect Emacs faces BEFORE loading a theme
+    ;; (any change needs a theme re-load to take effect).
+    (require 'ef-themes)
+
+    ;; If you like two specific themes and want to switch between them, you
+    ;; can specify them in `ef-themes-to-toggle' and then invoke the command
+    ;; `ef-themes-toggle'.  All the themes are included in the variable
+    ;; `ef-themes-collection'.
+    (setq ef-themes-to-toggle '(ef-summer ef-winter))
+
+    (setq ef-themes-headings
+	  '((1 light variable-pitch 1.5)
+	    (2 regular 1.3)
+	    (3 1.1)
+	    (agenda-date 1.3)
+	    (agenda-structure variable-pitch light 1.8)
+	    (t variable-pitch)))
+
+    ;; They are nil by default...
+    (setq ef-themes-mixed-fonts t
+	  ef-themes-variable-pitch-ui t)
+
+    ;; Read the doc string or manual for this one.  The symbols can be
+    ;; combined in any order.
+    (setq ef-themes-region '(intense no-extend neutral))
+
+    ;; Disable all other themes to avoid awkward blending:
+    (mapc #'disable-theme custom-enabled-themes)
+
+    ;; Load the theme of choice:
+    (load-theme 'ef-summer :no-confirm))
+#+END_SRC
+
+* Código opcional
+** Lisp
+
+*** Lisp completo: sbcl,  ccl, ecl
+#+BEGIN_SRC emacs-lisp
+    ;;-----------------------------------------------------------------------
+    ;; Lisp
+    ;;
+    ;; M-x slime -> abre la primera implementación lisp de la lista
+    ;; M-- M-x slime -> permite elegir una implementación lisp.
+    ;;
+    ;; Discrimina entre 'windows' y 
+    (cond
+      ((string-equal system-type "windows-nt")
+       (load (expand-file-name "c:/users/kmol/quicklisp/slime-helper.el")))
+      ((string-equal system-type "gnu/linux")
+       (load (expand-file-name "~/quicklisp/slime-helper.el"))))
+    ;; Utiliza 'sbcl' por defecto
+    (setq inferior-lisp-program "sbcl")
+    ;; Permite elegir una implementación de lisp: 'sbcl', 'ccl' y 'ecl'
+    (setq slime-lisp-implementations
+	  '((sbcl ("/usr/bin/sbcl") :coding-system utf-8-unix)
+	    (ccl ("~/.soft/prog/lisp/clozure/ccl-dev/lx86cl64"))
+	    (ecl ("/usr/bin/ecl"))))
+#+END_SRC
+
+
